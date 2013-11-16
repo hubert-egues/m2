@@ -13,7 +13,7 @@ var urls = {
     'saveProduct': DOMAIN+'/mobile/create/product/',
     'productInformation': DOMAIN+'/mobile/product-information/',
     'category':DOMAIN+'/mobile/category/',
-    'upload': DOMAIN+'/upload-image/product/',
+    'upload': DOMAIN+'/mobile/upload-image/product/',
     'client_create': DOMAIN+'/mobile/client/create/',
     'client_list': DOMAIN+'/mobile/client/list/',
     'client_company_types': DOMAIN+'/mobile/client/company_types/',
@@ -84,8 +84,7 @@ function init() {
         pageClientShow();
     }
 
-    function pageClientShow() { 
-    debugger;       
+    function pageClientShow() {
         $('.products_clients_add').html('');
         var html = "";
         var products = JSON.parse(localStorage.getItem('products_inventory'));
@@ -186,8 +185,13 @@ function init() {
                         'model_image': products[i].model_image,
                         'discount': getDiscount(products[i])
                     };
+
                     clientSelected.products.push(productSelected);                                                                        
-                    console.log('SE SELECCIONO' + clientSelected.id);
+                    $(this).data('selected', true);
+                    $(li).addClass("myProductSelected");
+                    var totalProduct = parseFloat(productSelected.price) * productSelected.quantity;
+                    clientSelected.total = totalProduct + currentPrice;
+                    $('.see_more_products_clients').text(clientSelected.total);
                     localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
                     $(this).data('selected', true);
                     $(li).addClass("myProductSelected");   
@@ -206,7 +210,6 @@ function init() {
                 if(remove > -1) {
                     debugger;
                     clientSelected.products.splice(remove, 1);
-                    console.log('1: '+JSON.stringify(clientSelected))
                     localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
                     $(this).data('selected',false);
                     $(li).removeClass("myProductSelected");
@@ -282,17 +285,16 @@ function init() {
     var cityFactory = new CityFactory(urls, token);
     var clientFactory = new ClientFactory(urls, token);
     var client = ClientModel(countryFactory, stateFactory, cityFactory, clientFactory, listClients);
-    client.init(); /* start list */
+    client.init();
 
     //Functions
     function loginAuth(event) {
+    	$('#container-login').css('display','none');
+        $.mobile.navigate("#pagina2");
         event.preventDefault();
         var result = checkConnection(Connection.ETHERNET);
-        result = true;
         if(result ==  true){
             var url = urls.login;
-            console.log(url);
-            console.log('test');
             $.ajax({
                 url: url,
                 data: {
@@ -970,6 +972,8 @@ function init() {
           legend.append("text").attr("x", width - 24).attr("y", 9).attr("dy", ".35em").style("text-anchor", "end").text(function(d) { return d; });
         }
 //        create_graphic(data_graphic);
+    	
+    	
         var line1 = [['Nissan', 4],['Porche', 6],['Acura', 2],['Aston Martin', 5],['Rolls Royce', 6]];        
         create_graphic_new = function(data_graphic){
         	$('#graphic2').jqplot([line1], {
@@ -1115,16 +1119,30 @@ function init() {
             options.fileKey="file";
             options.fileName=imageURL.substr(imageURL.lastIndexOf('/')+1);
             options.mimeType="image/jpeg";
+            options.chunkedMode = false;
 
             var params = new Object();
             params.value1 = "test";
             params.value2 = "param";
 
             options.params = params;
-            alert(urls.upload);
 
             var ft = new FileTransfer();
             ft.upload(imageURL, encodeURI(urls.upload), win, fail, options);
+
+            alert(urls.upload);
+            $.ajax({
+                url: urls.upload,
+                data: {
+                    data: encodeURIComponent(urls.upload)
+                },
+                contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+                type: 'POST',
+                success: function (data) {
+                    alert('ok')
+                }
+            });
+
         }
     }
 
@@ -1183,7 +1201,6 @@ function init() {
                         }
                     }
                 } else {
-                    alert('an error occurred');
                     $.mobile.navigate("#pagina11");
                 }
             },
