@@ -912,14 +912,14 @@ function init() {
     }
 
     function start_graphic(data_graphic) {
-        var margin = {top: 20, right: 20, bottom: 30, left: 40}, width = 960 - margin.left - margin.right, height = 500 - margin.top - margin.bottom;
-        var x0 = d3.scale.ordinal().rangeRoundBands([0, width], .1);
-        var x1 = d3.scale.ordinal();
-        var y = d3.scale.linear().range([height, 0]);
-        var color = d3.scale.ordinal().range(["#98abc5", "#8a89a6"]);
-        var xAxis = d3.svg.axis().scale(x0).orient("bottom");
-        var yAxis = d3.svg.axis().scale(y).orient("left").tickFormat(d3.format(".2s"));
-        var svg = d3.select("#graphic").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom).append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+//        var margin = {top: 20, right: 20, bottom: 30, left: 40}, width = 960 - margin.left - margin.right, height = 500 - margin.top - margin.bottom;
+//        var x0 = d3.scale.ordinal().rangeRoundBands([0, width], .1);
+//        var x1 = d3.scale.ordinal();
+//        var y = d3.scale.linear().range([height, 0]);
+//        var color = d3.scale.ordinal().range(["#98abc5", "#8a89a6"]);
+//        var xAxis = d3.svg.axis().scale(x0).orient("bottom");
+//        var yAxis = d3.svg.axis().scale(y).orient("left").tickFormat(d3.format(".2s"));
+//        var svg = d3.select("#graphic").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom).append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         function create_graphic(data) {
           /* EXAMPL DATA :
@@ -968,7 +968,29 @@ function init() {
           legend.append("rect").attr("x", width - 18).attr("width", 18).attr("height", 18).style("fill", color);
           legend.append("text").attr("x", width - 24).attr("y", 9).attr("dy", ".35em").style("text-anchor", "end").text(function(d) { return d; });
         }
-        create_graphic(data_graphic);
+//        create_graphic(data_graphic);
+        var line1 = [['Nissan', 4],['Porche', 6],['Acura', 2],['Aston Martin', 5],['Rolls Royce', 6]];        
+        create_graphic_new = function(data_graphic){
+        	$('#graphic2').jqplot([line1], {
+                title:'Bar Chart with Custom Colors',
+                // Provide a custom seriesColors array to override the default colors.
+                seriesColors:['#85802b', '#00749F', '#73C774', '#C7754C', '#17BDB8'],
+                seriesDefaults:{
+                    renderer:$.jqplot.BarRenderer,
+                    rendererOptions: {
+                        // Set varyBarColor to tru to use the custom colors on the bars.
+                        varyBarColor: true
+                    }
+                },
+                axes:{
+                    xaxis:{
+                        renderer: $.jqplot.CategoryAxisRenderer
+                    }
+                }
+            });
+        }
+        
+        create_graphic_new(data_graphic);
     }
 
     function pageMyProductsShow(){

@@ -19,19 +19,26 @@
         <script type="text/javascript">
             app.initialize();
         </script>
+        <script type="text/javascript" src="js/local_setting.js"></script>
         <script type="text/javascript" src="js/models/client.js"></script>
         <script type="text/javascript" src="js/factory/client.js"></script>
         <script type="text/javascript" src="js/factory/address.js"></script>
         <script type="text/javascript" src="js/main_mobile.js"></script>
 
         <!--  GRAPHIC D3 -->
-    	<style>
-			#graphic {font: 10px sans-serif;}
-			.axis path, .axis line {fill: none;stroke: #000;shape-rendering: crispEdges;}
-			.bar {fill: steelblue;}
-			.x.axis path {display: none;}
-		</style>
-		<script type="text/javascript" src="js/d3.v3.min.js"></script>
+<!--     	<style> -->
+/* 			#graphic {font: 10px sans-serif;} */
+/* 			.axis path, .axis line {fill: none;stroke: #000;shape-rendering: crispEdges;} */
+/* 			.bar {fill: steelblue;} */
+/* 			.x.axis path {display: none;} */
+<!-- 		</style> -->
+<!-- 		<script type="text/javascript" src="js/d3.v3.min.js"></script> -->
+		<script class="include" type="text/javascript" src="js/jqplot/jquery.jqplot.min.js"></script>
+	    <script type="text/javascript" src="js/jqplot/syntaxhighlighter/scripts/shCore.min.js"></script>
+	    <script type="text/javascript" src="js/jqplot/syntaxhighlighter/scripts/shBrushJScript.min.js"></script>
+	    <script type="text/javascript" src="js/jqplot/syntaxhighlighter/scripts/shBrushXml.min.js"></script>
+	    <script language="javascript" type="text/javascript" src="js/jqplot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
+	    <script language="javascript" type="text/javascript" src="js/jqplot/plugins/jqplot.barRenderer.min.js"></script>
 
 	</head>
 	<body>
@@ -159,6 +166,7 @@
                         <li data-role="list-divider"></li>
                         <li data-icon="back" id="logout">
                             <a class="btn_more_big" href="#pagina1">Log Out</a>
+                            <div id="graphic2" style="width: 160px; height: 160px"></div>
                         </li>
                     </ul>        
                 </div><!-- /panel -->
