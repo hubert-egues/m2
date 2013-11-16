@@ -288,6 +288,7 @@ function init() {
     function loginAuth(event) {
         event.preventDefault();
         var result = checkConnection(Connection.ETHERNET);
+        result = true;
         if(result ==  true){
             var url = urls.login;
             console.log(url);
