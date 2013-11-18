@@ -972,27 +972,52 @@ function init() {
           legend.append("text").attr("x", width - 24).attr("y", 9).attr("dy", ".35em").style("text-anchor", "end").text(function(d) { return d; });
         }
 //        create_graphic(data_graphic);
-    	
-    	
-        var line1 = [['Nissan', 4],['Porche', 6],['Acura', 2],['Aston Martin', 5],['Rolls Royce', 6]];        
+    	        
         create_graphic_new = function(data_graphic){
-        	$('#graphic2').jqplot([line1], {
-                title:'Bar Chart with Custom Colors',
-                // Provide a custom seriesColors array to override the default colors.
-                seriesColors:['#85802b', '#00749F', '#73C774', '#C7754C', '#17BDB8'],
-                seriesDefaults:{
-                    renderer:$.jqplot.BarRenderer,
-                    rendererOptions: {
-                        // Set varyBarColor to tru to use the custom colors on the bars.
-                        varyBarColor: true
-                    }
-                },
-                axes:{
-                    xaxis:{
-                        renderer: $.jqplot.CategoryAxisRenderer
-                    }
+        	/* transform data */
+        	var s1 = [];
+	        var s2 = [];
+	        var ticks = [];
+        	for(index in data_graphic) {
+        		var item = data_graphic[index];
+        		s1[s1.length] = item.Profit;
+        		s2[s2.length] = item.Sale;
+        		ticks[ticks.length] = item.Name;
+        	}
+	        plot2 = $.jqplot('chart2', [s1, s2], {
+	            seriesDefaults: {
+	                renderer:$.jqplot.BarRenderer,
+	                pointLabels: { show: true },
+	                rendererOptions: {fillToZero: true}
+	            },
+	            axes: {
+	                xaxis: {
+	                    renderer: $.jqplot.CategoryAxisRenderer,
+	                    ticks: ticks
+	                }
+	            },
+	            series:[
+	                    {label:'Profit'},
+	                    {label:'Sale'},
+	                ],
+                legend: {
+                    show: true,
+                    placement: 'outsideGrid' /* insideGrid */
                 }
-            });
+	        });
+	     
+	        $('#chart2').bind('jqplotDataHighlight', 
+	            function (ev, seriesIndex, pointIndex, data) {
+	                $('#info2').html('series: '+seriesIndex+', point: '+pointIndex+', data: '+data);
+	            }
+	        );
+	             
+	        $('#chart2').bind('jqplotDataUnhighlight', 
+	            function (ev) {
+	                $('#info2').html('Nothing');
+	            }
+	        );
+        	$('#graphic').append($('#pagina99'));
         }
         
         create_graphic_new(data_graphic);
