@@ -25,13 +25,34 @@
         <script type="text/javascript" src="js/factory/address.js"></script>
         <script type="text/javascript" src="js/main_mobile.js"></script>
 
+
+	<link class="include" rel="stylesheet" type="text/css" href="js/plot/jquery.jqplot.min.css" />
+    <link type="text/css" rel="stylesheet" href="js/jqplot/syntaxhighlighter/styles/shCoreDefault.min.css" />
+    <link type="text/css" rel="stylesheet" href="js/jqplot/syntaxhighlighter/styles/shThemejqPlot.min.css" />
+  
+    <!--[if lt IE 9]><script language="javascript" type="text/javascript" src="js/plot/excanvas.js"></script><![endif]-->
+<!--     <script class="include" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script> -->
+
+    <script class="include" type="text/javascript" src="js/plot/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="js/jqplot/syntaxhighlighter/scripts/shCore.min.js"></script>
+    <script type="text/javascript" src="js/jqplot/syntaxhighlighter/scripts/shBrushJScript.min.js"></script>
+    <script type="text/javascript" src="js/jqplot/syntaxhighlighter/scripts/shBrushXml.min.js"></script>
+<!-- Additional plugins go here -->
+
+  <script class="include" type="text/javascript" src="js/plot/plugins/jqplot.barRenderer.min.js"></script>
+  <script class="include" type="text/javascript" src="js/plot/plugins/jqplot.pieRenderer.min.js"></script>
+  <script class="include" type="text/javascript" src="js/plot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
+  <script class="include" type="text/javascript" src="js/plot/plugins/jqplot.pointLabels.min.js"></script>
+
+
         <!--  GRAPHIC  -->
         <!--[if IE]><script language="javascript" type="text/javascript" src="js/jit/Extras/excanvas.js"></script><![endif]-->
 <!-- 	    <script language="javascript" type="text/javascript" src="js/jit/jit.js"></script> -->
 
-<link type="text/css" href="js/jit/css/base.css" rel="stylesheet" />
-<link type="text/css" href="js/jit/css/BarChart.css" rel="stylesheet" />
-	    <script language="javascript" type="text/javascript" src="js/jit/jit-yc.js"></script>
+<!-- tres colores test  -->
+<!-- <link type="text/css" href="js/jit/css/base.css" rel="stylesheet" /> -->
+<!-- <link type="text/css" href="js/jit/css/BarChart.css" rel="stylesheet" /> -->
+<!-- 	    <script language="javascript" type="text/javascript" src="js/jit/jit-yc.js"></script> -->
 	    <script language="javascript" type="text/javascript">
 	    var labelType, useGradients, nativeTextSupport, animate;
 
@@ -156,6 +177,69 @@
 	        //load JSON data.
 	        barChart.loadJSON(json);
 	    }
+	    
+	    $(document).ready(function(){
+	    	$('#savechart').click(function(){
+	    	num = $('#userchart');
+	    	num2 = $('#userchart2');
+	    	tochart = num.val();
+	    	tochart2 = num2.val();
+	    	chartingg();
+	    	});
+	    	function chartingg(){
+	    	     $.jqplot.config.enablePlugins = true;
+
+	    	    var s1 = [tochart, tochart2];
+	    	    var ticks = ['Teste', 'Teste 2'];   
+
+	    	    var plot = $.jqplot('chartdiv', [s1], {
+
+	    	     seriesDefaults: {renderer:$.jqplot.BarRenderer},
+	    	     axes:{xaxis:{renderer:$.jqplot.CategoryAxisRenderer,
+	    	      ticks:ticks
+	    	       }
+
+	    	      }
+	    	     });
+
+	    	     plot.data = [s1];
+	    	                plot.replot({resetAxes:true});
+
+	    	    }
+
+	    	});
+	    
+	    $(document).ready(function(){
+	        var s1 = [2, 6, 7, 10];
+	        var s2 = [7, 5, 3, 2];
+	        var ticks = ['a', 'b', 'c', 'd'];
+	         
+	        plot2 = $.jqplot('chart2', [s1, s2], {
+	            seriesDefaults: {
+	                renderer:$.jqplot.BarRenderer,
+	                pointLabels: { show: true }
+	            },
+	            axes: {
+	                xaxis: {
+	                    renderer: $.jqplot.CategoryAxisRenderer,
+	                    ticks: ticks
+	                }
+	            }
+	        });
+	     
+	        $('#chart2').bind('jqplotDataHighlight', 
+	            function (ev, seriesIndex, pointIndex, data) {
+	                $('#info2').html('series: '+seriesIndex+', point: '+pointIndex+', data: '+data);
+	            }
+	        );
+	             
+	        $('#chart2').bind('jqplotDataUnhighlight', 
+	            function (ev) {
+	                $('#info2').html('Nothing');
+	            }
+	        );
+	    });
+	    
             </script>
 
 <!--     	<style> -->
@@ -167,7 +251,7 @@
 <!-- 		<script type="text/javascript" src="js/d3.v3.min.js"></script> -->
 
 	</head>
-	<body onload="init2();">
+ 	<body >  <!--  onload="init2();" -->
         <!--HOME-->
         <div data-role="page" id="pagina1">SITE
             <div id="container">
@@ -178,9 +262,16 @@
 				</div>
 				<div id="right-container">
 					<div id="inner-details"></div>
+					
+					
+
 				</div>
 				<div id="log"></div>
 			</div>
+			<input type="text" id="userchart"/>
+					<input type="text" id="userchart2"/> 
+					<button id="savechart"> save</button>
+					<div id="chart2"></div>
         </div>
         <div data-role="page" id="pagina20">
             <div id="container-login" style="display:none">
