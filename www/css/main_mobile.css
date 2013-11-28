@@ -597,8 +597,16 @@
 
     }
     .myProductSelected > .productSelected > span{
-        background-color: #08c !important;
+        background: url(../images/checked_teal.png) no-repeat center center!important;
     }
+/*    .overlay_product {
+    background: url(../images/checked_teal.png) no-repeat center center!important;
+    width: 100%;
+    display: block;
+    position: absolute;
+    z-index: 2;
+    height: 100%;
+}*/
     .without_radious img {
         width: 23em;
         height: 17em;
@@ -676,4 +684,12 @@ min-height: 4.8em;
 #pagina12 .ui-select .ui-btn-inner {
     padding: 1.3em;
     padding-bottom: 2em;
+}
+#username {
+    font-size: 25px !important;
+    font-weight: bolder;
+    padding: 10px 0 !important;
+}
+#password {
+    font-size: 22px !important; font-weight: bolder; padding: 10px 0 !important;
 }

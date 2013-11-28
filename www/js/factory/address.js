@@ -6,9 +6,9 @@ var CountryFactory = function(urls, token) {
 	factory.token = token;
 	factory.id_countries = 'id_countries';
 	
-	factory.get_all = function(handler) {
+	factory.get_all = function(handler, cache) {
 		var list = JSON.parse(window.localStorage.getItem(factory.id_countries));
-		if (factory.cache && list != null) {
+		if ((factory.cache || cache) && list != null) {
 			handler(list);
 		} 
 		
@@ -27,6 +27,11 @@ var CountryFactory = function(urls, token) {
 			}
 	    });
 	};
+	
+	factory.set_token = function(token) {
+		factory.token = token;
+	};
+	
 	return factory;
 };
 
@@ -59,6 +64,10 @@ var StateFactory = function(urls, token) {
 			}
 	    });
 	};
+	
+	factory.set_token = function(token) {
+		factory.token = token;
+	};
 
 	return factory;
 };
@@ -72,7 +81,6 @@ var CityFactory = function(urls, token) {
 	factory.id_cities = 'id_cities';
 
 	factory.get_by_char = function(state, handler){
-		window.localStorage.removeItem(factory.id_cities+state);
 		var list = JSON.parse(window.localStorage.getItem(factory.id_cities+state));
 		if (factory.cache && list != null) {
 			handler(list);
@@ -93,5 +101,10 @@ var CityFactory = function(urls, token) {
 			}
 	    });
 	};
+	
+	factory.set_token = function(token) {
+		factory.token = token;
+	};
+
 	return factory;
 };

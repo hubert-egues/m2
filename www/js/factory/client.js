@@ -6,9 +6,9 @@ var ClientFactory = function(urls, token) {
 	factory.id_client_list = 'clients';
 	factory.cache = false;
 	
-	factory.get_all = function(handler) {
+	factory.get_all = function(handler, cache) {
 		var client_list = JSON.parse(window.localStorage.getItem(factory.id_client_list));
-		if (factory.cache && client_list != null) {
+		if ((factory.cache || cache) && client_list != null) {
 			handler(client_list);
 		}
 		
@@ -70,12 +70,14 @@ var ClientFactory = function(urls, token) {
 	};
 	
 	factory.store_client = function(client){
-		var client_list = JSON.parse(window.localStorage.getItem(factory.id_client_list));
-		client_list[client_list.length] = client;
-		window.localStorage.setItem(factory.id_client_list, JSON.stringify(client_list));
+		if(window.localStorage.getItem(factory.id_client_list)){
+			var client_list = JSON.parse(window.localStorage.getItem(factory.id_client_list));
+			client_list[client_list.length] = client;
+			window.localStorage.setItem(factory.id_client_list, JSON.stringify(client_list));
+		}
 	};
 	
-	factory.get_company_types = function(handler) {
+	factory.get_company_types = function(handler){
 		var types_list = JSON.parse(window.localStorage.getItem(factory.id_company_types));
 		if (factory.cache && types_list != null) {
 			handler(types_list);
@@ -105,6 +107,10 @@ var ClientFactory = function(urls, token) {
                 $.mobile.loading("hide");
            }
 	    });
+	};
+	
+	factory.set_token = function(token) {
+		factory.token = token;
 	};
 	
 	return factory;
