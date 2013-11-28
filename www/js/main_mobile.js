@@ -80,6 +80,7 @@ function init() {
         $('.kill_storage').live('click', killStorage);
     //Functions
     $.mobile.selectmenu.prototype.options.nativeMenu = false;
+    $.mobile.buttonMarkup.hoverDelay = 1;
     
     function killStorage(){
         localStorage.setItem("clientSelected", '');
