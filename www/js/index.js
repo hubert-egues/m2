@@ -1,7 +1,7 @@
 
 var app = {
     getDomain: function() {
-        return "http://roypi.com"
+        return "http://roypi.com";
     },
     initialize: function() {
         this.bindEvents();
