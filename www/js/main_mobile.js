@@ -1,4 +1,5 @@
 $(window).load(function() {
+	alert('estado 1');
     var run = function(){
         if (Offline.state === 'up') {
             window.localStorage.setItem("rp-cache", false);
@@ -58,7 +59,7 @@ function init() {
     //         $('#search-redirect').hide();
     //     }
     // }, 1000);
-    
+	alert('estado 2');
     var analyzer_information_time = new Date(),
     	analyzer_information = [],
         imageURL = undefined,
@@ -131,10 +132,10 @@ function init() {
         var clientFactory = new ClientFactory(urls, token, window.localStorage.getItem("rp-cache"));
         var client = new ClientModel(countryFactory, stateFactory, cityFactory, clientFactory);
         client.init(window.localStorage.getItem("rp-cache")); /* start list */
-
+        alert('estado 3');
     /* INVOICE */
         var invoice = new InvoiceModel();
-
+        alert('estado 4');
     //Automatic Login
 
     if(token != null) {
