@@ -17,11 +17,13 @@ var ClientFactory = function(urls, token, cache) {
 			data: {rp_token: factory.token},
 			dataType: 'json',
 			beforeSend: function(){
-                $.mobile.loading("show", {
-                    textVisible: true,
-                    theme: 'c',
-                    textonly: false
-                });
+				try {
+	                $.mobile.loading("show", {
+	                    textVisible: true,
+	                    theme: 'c',
+	                    textonly: false
+	                });
+				} catch(e){}
             },
 			success: function(data){
 				if (data.status == 'ok') {
@@ -32,7 +34,9 @@ var ClientFactory = function(urls, token, cache) {
 				}
 			},
            complete: function(){
-                $.mobile.loading("hide");
+        	   try {
+        		   $.mobile.loading("hide");
+        	   } catch(e){}
            }
 	    });
 	};
@@ -45,11 +49,13 @@ var ClientFactory = function(urls, token, cache) {
 			data: params,
 			dataType: 'json',
 			beforeSend: function(){
-                $.mobile.loading("show", {
-                    textVisible: true,
-                    theme: 'c',
-                    textonly: false
-                });
+				try {
+	                $.mobile.loading("show", {
+	                    textVisible: true,
+	                    theme: 'c',
+	                    textonly: false
+	                });
+				} catch(e){}
             },
 			success: function(data){
 				if (data.status == 'ok') {
@@ -63,7 +69,9 @@ var ClientFactory = function(urls, token, cache) {
 				}
 			},
            complete: function(){
-                $.mobile.loading("hide");
+        	   	try {
+        		   $.mobile.loading("hide");
+           		} catch(e){}
            }
 	    });
 	};
@@ -89,11 +97,13 @@ var ClientFactory = function(urls, token, cache) {
 			data: {rp_token: factory.token},
 			dataType: 'json',
 			beforeSend: function(){
-                $.mobile.loading("show", {
-                    textVisible: true,
-                    theme: 'c',
-                    textonly: false
-                });
+				try {
+	                $.mobile.loading("show", {
+	                    textVisible: true,
+	                    theme: 'c',
+	                    textonly: false
+	                });
+				} catch(e){}
             },
 			success: function(data){
 				if (data.status == 'ok') {
@@ -104,7 +114,9 @@ var ClientFactory = function(urls, token, cache) {
 				}
 			},
            complete: function(){
-                $.mobile.loading("hide");
+        	   try {
+        		   $.mobile.loading("hide");
+        	   } catch(e){}
            }
 	    });
 	};

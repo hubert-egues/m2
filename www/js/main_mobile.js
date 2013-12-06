@@ -144,10 +144,14 @@ function init() {
         $('#container-login').css('display','inline');
     }
 
-    $.mobile.selectmenu.prototype.options.nativeMenu = false;
+    try {
+    	$.mobile.selectmenu.prototype.options.nativeMenu = false;
+    } catch(e) {}
 
-    $.mobile.buttonMarkup.hoverDelay = 0;
-
+    try {
+    	$.mobile.buttonMarkup.hoverDelay = 0;
+    } catch(e) {}
+    
     function saveClientStorage(){
         if(localStorage.getItem('clientSelected')){            
             var clientSelected = JSON.parse(localStorage.getItem('clientSelected'));        
@@ -319,7 +323,11 @@ function init() {
         client.getDataAddressClient();
         getAnalyzerInformation();
         $('#container-login').css('display','none');
-        $.mobile.navigate("#pagina2");
+        alert('antes de pagina 2 login');
+        try {
+        	$.mobile.navigate("#pagina2");
+        } catch(e) {}
+        alert('despues de pagina 2 login');
     }
 
     /* Buyer Inventory */
@@ -397,7 +405,9 @@ function init() {
                processAnalyzerInformation(1);
            },
            complete: function(){
-            $.mobile.loading("hide");
+        	   try {
+        		   $.mobile.loading("hide");
+        	   } catch(e) {}
            }
         });
     }
@@ -513,7 +523,9 @@ function init() {
         var div = $('<div></div>');
         	div.attr('id', 'graphic_jqplot');
           	$('#content_init_graphic').append(div);
-        create_graphic(data_graphic);
+          try {
+        	  create_graphic(data_graphic);
+          } catch(e) {}
     }
 
     function create_graphic(data) {
@@ -1513,15 +1525,19 @@ function init() {
     }
 
     function beforeAjaxLoader(){
-        $.mobile.loading("show", {
-            textVisible: true,
-            theme: 'c',
-            textonly: false
-        });
+    	try {
+	        $.mobile.loading("show", {
+	            textVisible: true,
+	            theme: 'c',
+	            textonly: false
+	        });
+    	} catch(e){}
     }
 
     function completeAjaxLoader(){
-        $.mobile.loading("hide");
+    	try {
+        	$.mobile.loading("hide");
+    	} catch(e){}
     }
 }
 
