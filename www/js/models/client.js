@@ -1,4 +1,4 @@
-var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFactory, listClients) {
+var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFactory) {
 	var model= this;
 	model.messages = [];
 	model.id_city_autocomplete = 'id_city_autocomplete';
@@ -11,6 +11,7 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 	model.id_page_new_client = 'pagina9';
 	model.id_client_selected = 'clientSelected';
 	model.class_item_city = 'class_item_city';
+	model.id_btn_go_to_form = 'btn_go_to_client_form';
 	
 	model.countryFactory = countryFactory;
 	model.stateFactory = stateFactory;
@@ -19,35 +20,58 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 	
 	model.city_selected = 0;
 	
-	model.init = function() {
+	model.init = function(cache) {
+		$("#"+model.id_btn_go_to_form).live("click", function(event){
+			model.start_form_values(cache);
+		});
 		$("#"+model.id_btn_create).live("click", model.create);
-		model.get_form_field('country').live("change", model.charge_states);
-		model.get_form_field('state').live("change", model.charge_cities);
-		$('.'+model.class_item_city).live('click', model.set_city_selected);
-		$.mobile.listview.prototype.options.filterCallback = model.filter_cities;
+		
+		if(!(model.get_form_field('country') === undefined)){
+			model.get_form_field('country').live("change", model.charge_states);
+			model.get_form_field('state').live("change", model.charge_cities);
+			$('.'+model.class_item_city).live('click', model.set_city_selected);	
+			//$.mobile.listview.prototype.options.filterCallback = model.filter_cities;
+		}				
 		/* model.list(); */
 		
 		/* start address */
-		model.start_form_values();
+		model.start_form_values(cache);
 	};
 	
+	model.getDataAddressClient = function(){	
+		model.countryFactory.get_all(function(countries){
+			for (var i in countries) {
+				var country = countries[i];
+				model.stateFactory.get_by_country(country.id, function(states){
+					for(var j in states){
+						var state = states[j];
+						model.cityFactory.get_by_char(state.id, function(){});
+					}
+				});
+			};
+		});		
+    };
+
 	model.filter_cities = function(text, searchValue, item) {
 		if (searchValue.length < 3 || text.toString().toLowerCase().indexOf( searchValue ) === -1) {
 			return true;
 		}
 		return false;
-	}
-	
-	
-	model.start_form_values = function(){
-		model.start_countries_values();
-		model.start_company_type_values();
 	};
 	
-	model.start_countries_values = function(cache) {
+	model.start_form_values = function(cache){
+		model.clear_form(5);
+		model.start_countries_values();
+		model.start_company_type_values();
+		
+	};
+	
+	model.start_countries_values = function(cache){
 		/* countries */
 		model.countryFactory.get_all(function(countries){
-			model.get_form_field('country').html('');
+			if (model.get_form_field('country') !== undefined) {
+				model.get_form_field('country').html('');	
+			};			
 			model.render_field_form('country', {id:'', name:'Select Country'});
 			for (var index in countries) {
 				country = countries[index];
@@ -56,38 +80,47 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 			try {model.get_form_field('country').selectmenu('refresh', true);}catch(e){}
 		}, cache);
 	};
-	
+		
 	model.start_company_type_values = function(cache) {
 		/* items */
-		model.clientFactory.get_company_types(function(items){
-			model.get_form_field('company_type').html('');
+		model.clientFactory.get_company_types(function(items) {
+			//3
+			var form = model.get_form_field('company_type');
+            if(form != undefined){
+                form.html('');
+            }
 			model.render_field_form('company_type', {id:'', name:'Select Type'});
 			for (var index in items) {
 				item = items[index];
 				model.render_field_form('company_type', item);
 			}
+			
 			try {model.get_form_field('company_type').selectmenu('refresh', true);}catch(e){}
 		}, cache);
 	};
 	
-	model.get_form_field  = function(field) {
-		if (field == 'city') {
+	model.get_form_field  = function(field){
+		if (field == 'city'){
 			var select = $('#'+model.id_city_autocomplete).find('ul')[0];
 			return $(select);
 		}
-		field_select = $("#"+model.id_page_new_client).find('form')[0][field];
-		return $(field_select);
+		if($("#"+model.id_page_new_client).length > 0){
+			field_select = $("#"+model.id_page_new_client).find('form')[0][field];
+			return $(field_select);
+		}		
 	};
 	
 	model.render_field_form = function(field, item_to_render, label_name){
 		if (typeof(label_name) == 'undefined') {
 			label_name = 'name';
 		}
-		field_select = model.get_form_field(field);
+		var field_select = model.get_form_field(field);
 		var option = $('<option></option>');
 		option.attr('value', item_to_render.id);
 		option.html(item_to_render[label_name]);
-		field_select.append(option);
+        if(field_select != undefined){
+            field_select.append(option);
+        }
 	};
 	
 	model.create = function(e){
@@ -104,18 +137,34 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 					model.show(model.messages);
 				} else {
 					model.set_client_to_list(data);
+					
 					/* TODO: uncomment when code pass to client */
 					/* model.apply_event_select(); 
 					model.refresh_list(); */
 					model.clear_form(5);
-					listClients();
 					$.mobile.navigate("#pagina11");
 					/* model.success_create(); */
 				}
 			});
+			
+			//create a client storage
+			if(Offline.state === 'down'){
+				
+				var allClients = JSON.parse(localStorage.getItem('allClients'));
+				var newClientOffline = {
+					id: 0,
+					name: params.name, 
+					image: "images/designer_default_photo.jpg", 
+					type: params.company_type
+				};
+				allClients.push(newClientOffline);
+				localStorage.setItem("allClients", JSON.stringify(allClients));
+				model.set_client_to_list(newClientOffline);		
+		        model.clear_form(5);
+				$.mobile.navigate("#pagina11");
+	        }
 		}
-	};
-	
+	}
 	model.get_form_params = function(form) {
 		params = {};
 		params.company_type = form.company_type.value;
@@ -153,7 +202,7 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 	
 	model.show = function(messages) {
 		var str = '';
-		for (message in messages) {
+		for (var message in messages) {
 			var message = messages[message];
 			str += message + '\n';
 		}
@@ -179,13 +228,19 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 	};
 
 	model.set_client_to_list = function(client) {
+				
 		var item_template = $('#'+model.id_item_template).html();
 		item_template = item_template.replace(/__name__/g, client.name);
 		item_template = item_template.replace(/__id__/g, client.id);
 		item_template = item_template.replace(/__image__/g, client.image);
+		if(Offline.state === 'down'){
+			item_template = item_template.replace(/__clientOffline__/g, 'disabled');	
+		}
+		
         $('#'+model.id_client_list).append(item_template);
+        $('#'+model.id_client_list).trigger('create');
 	};
- 
+
 	model.refresh_list = function() {
 		try {$('#'+model.id_client_list).trigger('create');}catch(e){}
 	};
@@ -241,26 +296,41 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 		model.city_selected = 0;
 		if (lvl > 0) {
 			var select = model.get_form_field('city');
-			select.html('');
-			try {select.trigger('refresh');}catch(e){}
-			
+			if (select) {
+				select.html('');
+				try {select.trigger('refresh');}catch(e){}
+			}
 		}
 		if (lvl > 1) {
 			var select = model.get_form_field('state');
-			select.html('');
-			try {select.selectmenu('refresh', true);}catch(e){}
+			if (select) {
+				select.html('');
+				try {select.selectmenu('refresh', true);}catch(e){}
+			}
 		}
 		if (lvl > 2) {
-			model.start_countries_values(true);
+			model.start_countries_values(window.localStorage.getItem("rp-cache"));
 		}
 		if (lvl > 3) {
-			model.start_company_type_values(true);
+			model.start_company_type_values(window.localStorage.getItem("rp-cache"));
 		}
 		if (lvl > 4) {
-			model.get_form_field('name').attr('value', '');
-			model.get_form_field('email').attr('value', '');
-			model.get_form_field('address').attr('value', '');
-			$('#'+model.id_city_autocomplete).find('div input')[0].value = '';
+			var name = model.get_form_field('name');
+			if (name) {
+				name.attr('value', '');
+			}
+			var email = model.get_form_field('email');
+			if (email) {
+				email.attr('value', '');
+			}
+			var address = model.get_form_field('address');
+			if (address) {
+				address = address.attr('value', '');	
+			}
+			var city_autocmoplete = $('#'+model.id_city_autocomplete).find('div input');
+			if (city_autocmoplete.length) {
+				city_autocmoplete[0].value = '';
+			}
 		}
 	};
 	

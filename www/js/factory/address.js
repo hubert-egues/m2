@@ -1,7 +1,7 @@
-var CountryFactory = function(urls, token) {
+var CountryFactory = function(urls, token, cache) {
 	var factory = {};
 
-	factory.cache = true;
+	factory.cache = cache;
 	factory.urls = urls;
 	factory.token = token;
 	factory.id_countries = 'id_countries';
@@ -9,7 +9,7 @@ var CountryFactory = function(urls, token) {
 	factory.get_all = function(handler, cache) {
 		var list = JSON.parse(window.localStorage.getItem(factory.id_countries));
 		if ((factory.cache || cache) && list != null) {
-			handler(list);
+			return handler(list);
 		} 
 		
 		$.ajax({
@@ -24,6 +24,9 @@ var CountryFactory = function(urls, token) {
 				} else {
 					return handler([]);
 				}
+			},
+			complete: function(){
+				$.mobile.loading("hide");
 			}
 	    });
 	};
@@ -35,18 +38,18 @@ var CountryFactory = function(urls, token) {
 	return factory;
 };
 
-var StateFactory = function(urls, token) {
+var StateFactory = function(urls, token, cache) {
 	var factory = {};
 	
-	factory.cache = true;
+	factory.cache = cache;
 	factory.urls = urls;
 	factory.token = token;
 	factory.id_states = 'id_states';
 
 	factory.get_by_country = function(country,  handler){
 		var list = JSON.parse(window.localStorage.getItem(factory.id_states+country));
-		if (factory.cache && list != null) {
-			handler(list);
+		if ((factory.cache || cache) && list != null) {
+			return handler(list);
 		} 
 		
 		$.ajax({
@@ -61,6 +64,9 @@ var StateFactory = function(urls, token) {
 				} else {
 					return handler([]);
 				}
+			},
+			complete: function(){
+				$.mobile.loading("hide");
 			}
 	    });
 	};
@@ -72,18 +78,18 @@ var StateFactory = function(urls, token) {
 	return factory;
 };
 
-var CityFactory = function(urls, token) {
+var CityFactory = function(urls, token, cache) {
 	var factory = {};
 
-	factory.cache = true;
+	factory.cache = cache;
 	factory.urls = urls;
 	factory.token = token;
 	factory.id_cities = 'id_cities';
 
 	factory.get_by_char = function(state, handler){
 		var list = JSON.parse(window.localStorage.getItem(factory.id_cities+state));
-		if (factory.cache && list != null) {
-			handler(list);
+		if ((factory.cache || cache) && list != null) {
+			return handler(list);
 		} 
 		
 		$.ajax({
@@ -91,6 +97,13 @@ var CityFactory = function(urls, token) {
 			type: 'POST',
 			data: {rp_token: factory.token, state: state},
 			dataType: 'json',
+			beforeSend: function(){
+                $.mobile.loading("show", {
+                    textVisible: true,
+                    theme: 'c',
+                    textonly: false
+                });
+            },
 			success: function(data){
 				if (data.status == 'ok') {
 					window.localStorage.setItem(factory.id_cities+state, JSON.stringify(data.list));
@@ -98,6 +111,9 @@ var CityFactory = function(urls, token) {
 				} else {
 					return handler([]);
 				}
+			},
+			complete: function(){
+				$.mobile.loading("hide");
 			}
 	    });
 	};

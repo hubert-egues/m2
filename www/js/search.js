@@ -1,13 +1,16 @@
 var DOMAIN = app.getDomain();
-
 $(function() {
     var token = window.localStorage.getItem("rp-token");
 
     $('#search-redirect').live('click', loadCategories);
     $('#search').live('click', search);
-    $('#back-index').on('click',backIndex)
+    $('#back-index').live('click', changeIndex);
 
     loadCategories();
+
+    function changeIndex() {
+        window.location.replace("index.html");
+    }
 
     function loadCategories() {
         var url = DOMAIN + '/mobile/category/';
@@ -25,7 +28,7 @@ $(function() {
                     textonly: false
                 });
             },
-            success: function (data) {
+            success: function(data) {
                 $('#categories-list').append('<li><a id="search" data-id="0" href="#">without specifying</a></li>');
                 $.each(data.categories, function(i, value) {
                     $('#categories-list').append('<li><a id="search" data-id="'+value.id+'" href="#">'+value.name+'</a></li>');
@@ -78,8 +81,5 @@ $(function() {
                 $.mobile.loading("hide");
            }
         });
-    }
-    function backIndex() {
-        window.location.replace("index.html");
-    }
+    }   
 });
