@@ -38,5 +38,15 @@ var InvoiceModel = function() {
 		return message;
 	};
 	
+	model.DESCRIPTION = function() {
+		/*...... click al elegir prodcto, pero si tiene variantes lleva a una nueva pantalla, si no tiene variantes pas a invoice  */
+		/* desde la pantalla de invoice, cuando se de click al producto nombre se debe lleva r a la pantalla de variante si tuviera, si no no se hace nada */
+		/* la nueva pantalla de sub variantes debera regresar siempre a la pantalla de seleccion de productos para el usuario actual (verificar si solo es una ) */
+		/* aplicar filtros para items de invoice */
+		/* verificar el limpiado de invoice para que no quede rastro anterior de productos (las cantidades anteriores se ven hasta que se cambia de pagina) */
+		/* actualizar el envio de data desde view para mobile y el storage local */
+		/* verificar offline el procedimiento */
+	};
+	
 	return model;
 };

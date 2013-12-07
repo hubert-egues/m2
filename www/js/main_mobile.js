@@ -9,7 +9,7 @@ $(window).load(function() {
     };
     setInterval(run, 5000);
     setTimeout(function(){
-        init();
+    	init();
     },1000);
 });
 
@@ -117,11 +117,7 @@ function init() {
             event.preventDefault();
         });
 
-    /* PRODUCTS */
-        var categoryFactory = new CategoryFactory(urls, token);
-        var buyerInventoryFactory = BuyerInventoryFactory(urls, token);
-        var product = ProductModel(categoryFactory);
-        product.init();/* start list */
+    
 
     /* CLIENT */
         var countryFactory = new CountryFactory(urls, token, window.localStorage.getItem("rp-cache"));
@@ -130,6 +126,12 @@ function init() {
         var clientFactory = new ClientFactory(urls, token, window.localStorage.getItem("rp-cache"));
         var client = new ClientModel(countryFactory, stateFactory, cityFactory, clientFactory);
         client.init(window.localStorage.getItem("rp-cache")); /* start list */
+    
+   /* PRODUCTS */
+        var categoryFactory = new CategoryFactory(urls, token);
+        var buyerInventoryFactory = new BuyerInventoryFactory(urls, token);
+        var buyerInventory = new BuyerInventoryModel(categoryFactory, buyerInventoryFactory, clientFactory);
+        buyerInventory.init();
         
     /* INVOICE */
         var invoice = new InvoiceModel();
@@ -171,32 +173,13 @@ function init() {
     }
 
     function calculatePrice(product) {
-    	var clientSelected = JSON.parse(localStorage.getItem('clientSelected'));
-        //business client -> wholesale 1
-        //consumer -> retail 2
-        var price =0;
-        if(clientSelected.type === 1) {            
-            price = product.wholesale_price;
-        }
-        else if(clientSelected.type === 2) {        
-            price = product.retail_price;
-            if (typeof(product.clients_discount) != 'undefined') {                
-	            if (typeof(product.clients_discount[clientSelected.id]) != 'undefined') {
-	        		price = product.clients_discount[clientSelected.id].amount;
-	        	}
-            }
-        }        
+    	/* TODO: agregar variante id si fuera necesario */
+    	var price = buyerInventory.calculate_price_by_client_selected(product);
         return price;
     }
     
     function getDiscount(product) {
-    	var discount = 0;
-    	var clientSelected = JSON.parse(localStorage.getItem('clientSelected'));
-    	if(clientSelected.type === 2) {
-            if (typeof(product.clients_discount[clientSelected.id]) != 'undefined') {
-            	discount = product.clients_discount[clientSelected.id].id;
-        	}
-        }
+    	var discount = buyerInventory.get_discount_id_by_client_selected(product);
     	return discount;
     }
 
@@ -206,8 +189,6 @@ function init() {
         event.preventDefault();
         if(Offline.state == 'up') {
             var url = urls.login;
-            console.log(url);
-            console.log('test');
             $.ajax({
                 url: url,
                 data: {
@@ -967,7 +948,6 @@ function init() {
         }    
         else{
             $.mobile.navigate("#pagina11");
-            console.log('redirectToPage');
         }    
     }
 
@@ -1090,8 +1070,7 @@ function init() {
                         'model_image': products[i].model_image,
                         'discount': getDiscount(products[i])
                     };
-                    clientSelected.products.push(productSelected);                                                                        
-                    console.log('SE SELECCIONO' + clientSelected.id);
+                    clientSelected.products.push(productSelected);
                     localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
                     $(this).data('selected', true);
                     $(li).addClass("myProductSelected");
@@ -1099,7 +1078,7 @@ function init() {
                     //animation
                     var self = $(this).parent('.myProductSelected');
                     var clone = $(this).parent('.myProductSelected').clone(), 
-                    position = $(this).parent('.myProductSelected').position();debugger;
+                    position = $(this).parent('.myProductSelected').position();
                     clone.addClass('clone');
                     
                     var bezier_params = {
@@ -1125,6 +1104,8 @@ function init() {
                     //end animation
                     //show prices
                     $('.see_more_products_clients').text(getCurrentTotal());
+                    
+                    buyerInventory.go_to_sub_variant_view(products[i].id);
                     break;
                 }
             //Remove Products to LocalStorage
@@ -1137,7 +1118,6 @@ function init() {
                 });
                 if(remove > -1) {
                     clientSelected.products.splice(remove, 1);
-                    console.log('1: '+JSON.stringify(clientSelected))
                     localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
                     $(this).data('selected',false);
                     $(li).removeClass("myProductSelected");

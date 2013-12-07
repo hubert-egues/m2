@@ -4,6 +4,7 @@ var ClientFactory = function(urls, token, cache) {
 	factory.token = token;
 	factory.id_company_types = 'id_company_types';
 	factory.id_client_list = 'clients';
+	factory.storage_id_client_selected = 'clientSelected';
 	factory.cache = cache;
 	
 	factory.get_all = function(handler, cache) {
@@ -123,6 +124,15 @@ var ClientFactory = function(urls, token, cache) {
 	
 	factory.set_token = function(token) {
 		factory.token = token;
+	};
+	
+	factory.get_client_selected = function() {
+		var clientSelected = JSON.parse(localStorage.getItem(factory.storage_id_client_selected));
+		return clientSelected;
+	};
+	
+	factory.set_client_selected = function(client) {
+		localStorage.setItem(factory.storage_id_client_selected, JSON.stringify(client));
 	};
 	
 	return factory;

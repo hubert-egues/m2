@@ -341,6 +341,6 @@ var ClientModel = function(countryFactory, stateFactory, cityFactory, clientFact
 		$('#'+model.id_city_autocomplete).find('div input')[0].value = city_name;
 		$($('#'+model.id_city_autocomplete).find('div input')[0]).trigger('keyup');
 	};
- 	
+	
 	return model;
 };
