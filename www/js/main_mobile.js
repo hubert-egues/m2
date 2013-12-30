@@ -1,6 +1,10 @@
 $(window).load(function() {
     var run = function(){
         if (Offline.state === 'up') {
+
+            if(window.localStorage.getItem("rp-cache") == true || window.localStorage.getItem("rp-cache") == "true" ){
+                init(true);
+            }
             window.localStorage.setItem("rp-cache", false);
             Offline.check();
         } else {
@@ -9,7 +13,7 @@ $(window).load(function() {
     };
     setInterval(run, 5000);
     setTimeout(function(){
-    	init();
+        init();
     },1000);
 });
 
@@ -43,24 +47,16 @@ var urls = {
     'countries': DOMAIN+'/mobile/countries/',
     'states_by_country': DOMAIN+'/mobile/states_by_country/',
     'cities_by_char': DOMAIN+'/mobile/cities_by_char/',
-    'send_invoice': DOMAIN+'/mobile/buyer-inventory-create-sale/'
+    'send_invoice': DOMAIN+'/mobile/buyer-inventory-create-sale/',
+    'features': DOMAIN+'/mobile/__idModel__/available-features/',
+    'valuesFeatures': DOMAIN+'/mobile/__idModel__/feature-values/__idFeature__/'
 };
 
 var items_list = [], productsSelected = [], storageClients = [];
 
-function init() {
-    //cuando es offline hacer lo siguiente
-    // setInterval(function(){
-    //     if(Offline.state == 'down') {
-    //         $('#search-redirect').show();
-    //     }
-    //     if(Offline.state == 'up'){
-    //         $('#search-redirect').hide();
-    //     }
-    // }, 1000);
-    var analyzer_information_time = new Date(),
-    	analyzer_information = [],
-        imageURL = undefined,
+function init(reconection) {
+
+    var imageURL = undefined,
         cache=false,
         token = window.localStorage.getItem("rp-token");
 
@@ -80,6 +76,10 @@ function init() {
         $('#create_item').live("click", saveProduct);
         $('.option-expand').live('expand', setCategory);
         $('#edit-image').live('click', takePicture);
+
+        //features
+        $('#features').live( "click", getFeatures);
+        $('.feature_option').live('click', getValuesFeatures);
 
         //Analyzer
         $("#browser").live('input', getCompleteInformation);
@@ -108,6 +108,11 @@ function init() {
         $('#back_page').live('click', redirectToPage);
         $('#selectClient-menu').find('li').live('click', moveToOtherClient);
         $('.kill_storage').live('click', killStorage);
+        $('.returnToSelectedProducts').live('click', goProduct);
+        $('#select_buyer_store').bind('change', changeSelectStore);
+        $('#store_total_qty').bind('change', changeInventoryQuantities);
+        
+        
 
         /*Client offline*/        
         $('.disabled').parents('.ui-radio').bind('click', function(){;
@@ -117,8 +122,6 @@ function init() {
             event.preventDefault();
         });
 
-    
-
     /* CLIENT */
         var countryFactory = new CountryFactory(urls, token, window.localStorage.getItem("rp-cache"));
         var stateFactory = new StateFactory(urls, token, window.localStorage.getItem("rp-cache"));
@@ -126,16 +129,26 @@ function init() {
         var clientFactory = new ClientFactory(urls, token, window.localStorage.getItem("rp-cache"));
         var client = new ClientModel(countryFactory, stateFactory, cityFactory, clientFactory);
         client.init(window.localStorage.getItem("rp-cache")); /* start list */
-    
-   /* PRODUCTS */
+
+    /* PRODUCTS */        
         var categoryFactory = new CategoryFactory(urls, token);
-        var buyerInventoryFactory = new BuyerInventoryFactory(urls, token);
+        var featureFactory = new FeatureFactory(urls, token);
+        var buyerInventoryFactory = new BuyerInventoryFactory(urls, token, window.localStorage.getItem("rp-cache"));
         var buyerInventory = new BuyerInventoryModel(categoryFactory, buyerInventoryFactory, clientFactory);
         buyerInventory.init();
         
     /* INVOICE */
-        var invoice = new InvoiceModel();
+        var invoice = new InvoiceModel(buyerInventoryFactory);
+        
+    /* ANALIZER */
+        var analyzer = new AnalyzerModel(buyerInventoryFactory);
+        analyzer.set_domain(DOMAIN);
+
     //Automatic Login
+
+    if(reconection == true){
+        eventsAfterLogin();
+    }
 
     if(token != null) {
         authToken();
@@ -143,20 +156,17 @@ function init() {
         $('#container-login').css('display','inline');
     }
 
-    try {
+    try{
     	$.mobile.selectmenu.prototype.options.nativeMenu = false;
-    } catch(e) {}
-
-    try {
     	$.mobile.buttonMarkup.hoverDelay = 0;
-    } catch(e) {}
-    
+    }catch(e){}
+
     function saveClientStorage(){
         if(localStorage.getItem('clientSelected')){            
             var clientSelected = JSON.parse(localStorage.getItem('clientSelected'));        
             if(clientSelected.products == ''){
                 cleanClientSelected();
-                $.mobile.navigate("#pagina11");
+                try{$.mobile.navigate("#pagina11");}catch(e){}
             }
             else if(clientSelected.products != ''){                
                 //validar si esta repetido
@@ -167,14 +177,23 @@ function init() {
                 else{                    
                     storageClients.push(clientSelected);
                 }
-                $.mobile.navigate("#pagina12");
+                try{$.mobile.navigate("#pagina12");}catch(e){}
             }
         }
     }
 
+    function loading(){
+        try{
+            $.mobile.loading("show", {
+                textVisible: true,
+                theme: 'c',
+                textonly: false
+            });
+        }catch(e){}
+    }
+
     function calculatePrice(product) {
-    	/* TODO: agregar variante id si fuera necesario */
-    	var price = buyerInventory.calculate_price_by_client_selected(product);
+        var price = buyerInventory.calculate_price_by_client_selected(product);
         return price;
     }
     
@@ -189,6 +208,8 @@ function init() {
         event.preventDefault();
         if(Offline.state == 'up') {
             var url = urls.login;
+            console.log(url);
+            console.log('test');
             $.ajax({
                 url: url,
                 data: {
@@ -198,11 +219,7 @@ function init() {
                 type: 'POST',
                 dataType: 'json',
                 beforeSend: function(){
-                    $.mobile.loading("show", {
-                        textVisible: true,
-                        theme: 'c',
-                        textonly: false
-                    });
+                    loading()
                 },
                 success: function (data) {
                     if (data.status === 'OK') {
@@ -214,11 +231,11 @@ function init() {
                     }
                 },
                 complete: function(){
-                    $.mobile.loading("hide");
+                    try{$.mobile.loading("hide");}catch(e){}
                 }
             });
         } else {
-            alert('Check your internet connection')
+            alert('Check your internet connection');
         }
     }
 
@@ -231,6 +248,7 @@ function init() {
         event.preventDefault();
         window.localStorage.removeItem('buyerInventory');
         window.localStorage.removeItem('rp-token');
+        window.localStorage.removeItem('rp-synchronization');
         window.localStorage.removeItem('items_list');
         window.localStorage.removeItem('productsSelected');
         window.localStorage.removeItem('storageClients');
@@ -249,7 +267,7 @@ function init() {
                 token = window.localStorage.getItem("rp-token");
                 eventsAfterLogin();
             } else {
-                alert('Check your internet connection')
+                alert('Check your internet connection');
             }
         } else {
             var url = urls.loginToken;
@@ -260,7 +278,7 @@ function init() {
                 },
                 type: 'POST',
                 dataType: 'json',
-                beforeSend: beforeAjaxLoader(),
+                beforeSend: loading(),
                 success: function (data) {
                     if (data.status === 'OK') {
                         window.localStorage.setItem("rp-token", data.token);
@@ -282,38 +300,55 @@ function init() {
                 
                 eventsAfterLogin();
             } else {
-                alert('Check your internet connection')
+                alert('Check your internet connection');
             }
         }
     }
 
     function eventsAfterLogin() {
+
         categoryFactory.set_token(token);
+        featureFactory.set_token(token);
         buyerInventoryFactory.set_token(token);
         countryFactory.set_token(token);
         stateFactory.set_token(token);
         cityFactory.set_token(token);
-        clientFactory.set_token(token); 
+        clientFactory.set_token(token);
 
         client.start_countries_values();
+        client.getDataAddressClient();
         getInventoryItems();
         listClients();
         client.getDataAddressClient();
-        getAnalyzerInformation();
+        startAnalyzerInformation();
+        getInformationProduct();
         $('#container-login').css('display','none');
-        try {
-        	$.mobile.navigate("#pagina2");
-        } catch(e) {}
+        try{$.mobile.navigate("#pagina2");}catch(e){}
     }
 
     /* Buyer Inventory */
 
+    function changeInventoryQuantities() {
+    	var all = false;
+    	if ($('#store_total_qty').attr('checked') == 'checked') {
+    		all = true;
+    	}
+    	buyerInventoryFactory.update_total_qty_for_items(all);
+    }
+
+    function changeSelectStore() {
+    	getInventoryItems();
+    	$('#id_tab_my_inventory').trigger('click');
+    }
+    
     function getInventoryItems() {
         var cache = false;
         if(Offline.state == 'down') {
             cache = true;
         }
-        buyerInventoryFactory.get_all(showInventory, cache);
+        var store = $('#select_buyer_store').val();
+        $('#store_total_qty').attr('checked', false);
+        buyerInventoryFactory.get_all(store, showInventory, cache);
     }
 
     function showInventory(list) {
@@ -357,192 +392,36 @@ function init() {
             ul_for_inserting.html('');
             ul_for_inserting.append(html_to_insert);
             $('.model-data').live('click', showDetail);
+
+            var store = $('#select_buyer_store').val();
+            buyerInventory.render_stores(store);
         }
     }
-
+    
     /* Analyzer */
-
-    function getAnalyzerInformation() {
+    function startAnalyzerInformation() {
     	if (Offline.state == 'down') {
     		return false;
     	}
-        var url = urls.analyzer;
-        $.ajax({
-           url: url,
-           type: 'POST',
-           data: {
-                rp_token: token
-           },
-           dataType: 'json',
-           beforeSend: beforeAjaxLoader(),
-           success: function(data){
-               analyzer_information = data.context['information'];
-               analyzer_information_time = new Date();
-               processAnalyzerInformation(1);
-           },
-           complete: function(){
-        	   try {
-        		   $.mobile.loading("hide");
-        	   } catch(e) {}
-           }
-        });
+    	stores = buyerInventoryFactory.get_stores();
+    	if (stores.length > 0) {
+    		for (var index in stores) {
+        		buyerInventoryFactory.get_analyzer_information(stores[index].id, function(data){}, false);
+        	}
+    	}
     }
 
+    function getAnalyzerInformation(type) {
+    	var analyzer_cache = false;
+    	if (Offline.state == 'down') {
+    		analyzer_cache = true;
+    	}
+    	var store = $('#select_buyer_store').val();
+    	analyzer.update(store, analyzer_cache, type);
+    }
+    
     function processAnalyzerInformation(type) {
-        // dates limit
-        var initial_date = new Date();
-        var finish_date = new Date();
-
-        /* control: 1=month, 2=week, 3=day */
-        if (typeof(type) == 'undefined') {
-            type = 1;
-        }
-
-        if (type == 1) { /* month */
-            var date = new Date();
-            var initial_date = new Date(date.getFullYear(), date.getMonth(), 1);
-            var finish_date = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-        } else if (type == 2) { /* week */
-            var date = new Date();
-            var day = date.getDay(),
-                diff = date.getDate() - day + (day == 0 ? -6:1); // adjust when day is sunday
-            var initial_date = new Date(date.setDate(diff));
-            var finish_date = initial_date + 6;
-
-        } else if (type == 3) { /* day */
-            var initial_date = new Date();
-            var finish_date = new Date();
-        }
-        /* TOTALS */
-        var total_sales = 0;
-        var total_units = 0;
-        var total_profit = 0;
-
-        for(var i in analyzer_information['values']) {
-            item = analyzer_information['values'][i];
-            date = get_date_from_string(item['date']);
-            if (date >= initial_date && date <= finish_date) {
-                total_sales += item['sale_value'];
-                total_units += item['sale_volume'];
-                total_profit += item['projected_profit'];
-            }
-        }
-        $('#pagina2').find('.tab2').find('#analyzer_total_sales').html(total_sales);
-        $('#pagina2').find('.tab2').find('#analyzer_total_units').html(total_units);
-        $('#pagina2').find('.tab2').find('#analyzer_total_profit').html(total_profit);
-
-        /* POPULAR */
-        var total_models_data = total_models(initial_date, finish_date, analyzer_information['variants']['data']);
-        var popular = false;
-        for (var i in total_models_data) {
-            item = total_models_data[i];
-            if (popular) {
-                if (popular['quantity'] < item['quantity']) {
-                    popular = item;
-                }
-            } else {
-                popular = item;
-            }
-        }
-        if (popular !== false) {
-            if (typeof(analyzer_information['variants']['models'][popular['product_model_id']]) != 'undefined') {
-                details = analyzer_information['variants']['models'][popular['product_model_id']];
-                $('#pagina2').find('.tab2').find('#most_popular_img').html('<img src="'+DOMAIN+details['image']+'" />');
-                $('#pagina2').find('.tab2').find('#most_popular_name').html(details['name']);
-                $('#pagina2').find('.tab2').find('#most_popular_sold').html(popular['quantity']);
-            }
-        }
-
-        /* graphic */
-        var date_formated = analyzer_information_time.toLocaleDateString() + ' ' + analyzer_information_time.toLocaleTimeString();
-        result = [{
-            Name:"Resume (" + date_formated + ")", Sale:total_sales, Profit:total_profit
-        }];
-
-        $('#graphic').html('');
-        start_graphic(result);
-        $('#graphic').trigger('create');
-
-        return true;
-    }
-
-    function total_models(initial_date, finish_date, data) {
-        result = {};
-        for (var i in data) {
-            item = data[i];
-            date = get_date_from_string(item['date']);
-            if (date >= initial_date && date <= finish_date) {
-                if (typeof(result[item['product_model_id']]) == 'undefined') {
-                    result[item['product_model_id']] = item;
-                } else {
-                    result[item['product_model_id']]['quantity'] += item['quantity'];
-                }
-            }
-        }
-        return result;
-    }
-
-    function get_date_from_string(string_date) {
-        parts = string_date.split('-');
-        var year = parts[0], month = parts[1], day = parts[2];
-        if (month.substring(0, 1) == '0') {
-            month = month.substring(1);
-        }
-        if (day.substring(0, 1) == '0') {
-            day = day.substring(1);
-        }
-        month = parseInt(month) - 1;
-        return new Date(parseInt(year), parseInt(month), parseInt(day));
-    }
-
-    function start_graphic(data_graphic) {
-        var div = $('<div></div>');
-        	div.attr('id', 'graphic_jqplot');
-          	$('#content_init_graphic').append(div);
-          try {
-        	  create_graphic(data_graphic);
-          } catch(e) {}
-    }
-
-    function create_graphic(data) {
-        var s1 = [];
-        var s2 = [];
-	    var ticks = [];
-        for(index in data) {
-        var item = data[index];
-        	s1[s1.length] = item.Profit;
-        	s2[s2.length] = item.Sale;
-        	ticks[ticks.length] = item.Name;
-        }
-	    plot2 = $.jqplot('graphic_jqplot', [s1, s2], {
-	        seriesDefaults: {
-	            renderer:$.jqplot.BarRenderer,
-	            pointLabels: { show: true },
-	            rendererOptions: {fillToZero: true}
-	        },
-	        axes: {
-	            xaxis: {
-	                renderer: $.jqplot.CategoryAxisRenderer,
-	                ticks: ticks
-	            }
-	        },
-	        series:[
-	                {label:'Profit'},
-	                {label:'Sale'},
-	            ],
-            legend: {
-                show: true,
-                placement: 'outsideGrid' /* insideGrid */
-            }
-	    });
-	    $('#chart2').bind('jqplotDataHighlight',
-	        function (ev, seriesIndex, pointIndex, data) {}
-	    );
-	    $('#chart2').bind('jqplotDataUnhighlight',
-	        function (ev) {}
-	    );
-	    /* transfer graphic to view analizer */
-	    $('#graphic').append($('#graphic_jqplot'));
+    	analyzer.show_graphic(type);
     }
 
     /* Client */
@@ -570,7 +449,7 @@ function init() {
                     rp_token: token
                },
                dataType: 'json',
-               beforeSend: beforeAjaxLoader(),
+               beforeSend: loading(),
                success: function(data){
                     $('#pagina11').find('#list_clients').html('');
                     var ul_for_list_clients = $('#pagina11').find('#list_clients'),
@@ -612,13 +491,13 @@ function init() {
 
                                         localStorage.setItem("clientSelected", JSON.stringify(client_exists));
                                         clientSelected = JSON.parse(localStorage.getItem('clientSelected'));
-                                        $.mobile.navigate("#pagina12");
+                                        try{$.mobile.navigate("#pagina12");}catch(e){}
                                         result = true;
                                     } else {
                                         result = false;
                                     }
                                     if(result == false) {
-                                        var clientSelected = createNewClient(items_list[client])
+                                        var clientSelected = createNewClient(items_list[client]);
                                     }
                                 } else {
                                     var clientSelected = createNewClient(items_list[client]);
@@ -635,12 +514,29 @@ function init() {
                         $('#selectClient-button > span > span > span').text(clientSelected.name);
                         localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
                         if(clientSelected.products == ''){
-                            $.mobile.navigate("#pagina13");
+                            try{$.mobile.navigate("#pagina13");}catch(e){}
                         }
                     });
                     localStorage.setItem("allClients", JSON.stringify(items_list));
                 },
                 complete: completeAjaxLoader()
+            });
+            
+            console.log('test de datos history')
+    		$.ajax({
+                url: 'http://developer.local.dev:8000/private/buyer-inventory-history',
+                type: 'POST',
+                beforeSend: function (request){
+    				request.setRequestHeader("rp-api-key","eca879854d0384193177b32226867c3e"); 
+    			},
+    			dataType: 'json',
+    			headers:{ "rp-api-key2": "eca879854d0384193177b32226867c3e"},
+                success: function (data) {
+                	$('#test_show').html('ok');
+                },
+                complete: function(status, obj, tt){
+                	$('#test_show').html('ko');
+                }
             });
         }
         else{
@@ -684,13 +580,13 @@ function init() {
 
                                         localStorage.setItem("clientSelected", JSON.stringify(client_exists));
                                         clientSelected = JSON.parse(localStorage.getItem('clientSelected'));
-                                        $.mobile.navigate("#pagina12");
+                                        try{$.mobile.navigate("#pagina12");}catch(e){}
                                         result = true;
                                     } else {
                                         result = false;
                                     }
                                     if(result == false) {
-                                        var clientSelected = createNewClient(items_list[client])
+                                        var clientSelected = createNewClient(items_list[client]);
                                     }
                                 } else {
                                     var clientSelected = createNewClient(items_list[client]);
@@ -707,12 +603,13 @@ function init() {
                         $('#selectClient-button > span > span > span').text(clientSelected.name);
                         localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
                         if(clientSelected.products == ''){
-                            $.mobile.navigate("#pagina13");
+                            try{$.mobile.navigate("#pagina13");}catch(e){}
                         }
                     });
                     localStorage.setItem("allClients", JSON.stringify(items_list));
         }
     }
+
     function createNewClient(client) {
         var clientSelected = {
             'id': client.id,
@@ -742,14 +639,14 @@ function init() {
             }
             $('#selectClient').append(html);
 
-            $('#selectClient-button > span > span > span').text(clientSelected.name);        
+            $('#selectClient-button > span > span > span').text(clientSelected.name);
             $.mobile.navigate("#pagina12");
         }
         else{
             alert('Chooce Someone!');
         }        
     }
-
+    
     function updateAfterCreateInvoice(clientSelected) {
     	for(var i in storageClients){
             var index = getArrayIndexClientsSelected().indexOf(clientSelected.id);
@@ -771,9 +668,20 @@ function init() {
         }
     }
 
+    function getTypeUpdate() {
+    	var type = $('#update_stock_by_status').attr('checked');
+    	if (type == 'checked') {
+    		return 2;
+    	}
+    	return 1;
+    }
+
     function sendProductsInvoice(event) {
+        var self = $(this);
         event.preventDefault();
         var clientSelected = JSON.parse(localStorage.getItem('clientSelected'));
+        var store = $('#select_buyer_store').val();
+        var type_update = getTypeUpdate();
         var data_client = [];
         var url = urls.send_invoice;
         for (var index in storageClients) {
@@ -782,44 +690,51 @@ function init() {
 	        	break;
 	        }
         }
+        var today = new Date();
+            // Today eg: '2013-12-15'
+            today = today.getFullYear() + '-' + (parseInt(today.getMonth()) + 1) + '-' + today.getDate();
+
         var data = {
             rp_token: token,
-            client: JSON.stringify(data_client)
+            client: JSON.stringify(data_client),
+            dateOfSale: today,
+            store: store,
+            type_update: type_update
         };
 
 		if (!invoice.are_valid_products(data_client[0].products)) {
         	alert(invoice.get_message());
         	return false;
         }
-
-        $.ajax({
-          url: url,
-          type: 'POST',
-          dataType: 'json',
-          data: data,
-          beforeSend: function(){
-                $.mobile.loading("show", {
-                    textVisible: true,
-                    theme: 'c',
-                    textonly: false
-                });
-            },
-            success: function(data) {
-                if (data.status == true) {
-                	updateAfterCreateInvoice(clientSelected);
-                } else {
-                    alert('an error occurred');
-                    $.mobile.navigate("#pagina11");
+        if(self.data('status')=="true" || self.data('status') == true){
+            self.data('status','false');
+            $.ajax({
+              url: url,
+              type: 'POST',
+              dataType: 'json',
+              data: data,
+              beforeSend: function(){
+                    loading()
+                },
+                success: function(data) {
+                    self.data('status','true');
+                    if (data.status == true) {
+                        updateAfterCreateInvoice(clientSelected);
+                    } else {
+                        alert('an error occurred');
+                        $.mobile.navigate("#pagina11");
+                    }
+                },
+                complete: function(){
+                    $.mobile.loading("hide");
                 }
-            },
-            complete: function(){
-                $.mobile.loading("hide");
-            }
-        });
+            });
 
-        if (Offline.state == 'down') {
-        	updateAfterCreateInvoice(clientSelected);
-        	$.mobile.navigate("#pagina11");
+            if (Offline.state == 'down') {
+                self.data('status','true');
+                updateAfterCreateInvoice(clientSelected);
+                $.mobile.navigate("#pagina11");
+            }
         }
     }
 
@@ -850,7 +765,7 @@ function init() {
                             }
                         }
                         //cambiar sus detalles
-                        var products = JSON.parse(localStorage.getItem('buyerInventory'));
+                        var products = buyerInventoryFactory.get_current_list();
                         for(var j in products) {
 
                             if(productsToMigrate.indexOf(products[j].id) !== -1){
@@ -888,7 +803,7 @@ function init() {
                                 'products':[],
                                 'total':0
                             };
-                            var products = JSON.parse(localStorage.getItem('buyerInventory'));
+                            var products = buyerInventoryFactory.get_current_list();
                             for(var j in products){
 
                                 if(getArrayIndexProductsSelected().indexOf(products[j].id) !== -1){
@@ -927,7 +842,7 @@ function init() {
         if(newSelection == 'tab1'){
             prevSelection = 'tab2';
         } else {
-        	getAnalyzerInformation();
+        	getAnalyzerInformation(1);
         }
         $("."+prevSelection).addClass("ui-screen-hidden");
         $("."+newSelection).removeClass("ui-screen-hidden");
@@ -948,6 +863,7 @@ function init() {
         }    
         else{
             $.mobile.navigate("#pagina11");
+            console.log('redirectToPage');
         }    
     }
 
@@ -958,20 +874,20 @@ function init() {
     function pageClientShow() { 
         $('.products_clients_add').html('');
         var html = "",
-            products = JSON.parse(localStorage.getItem('buyerInventory'));
+            products = buyerInventoryFactory.get_current_list();
         for(var i in products) {
-            var _offline = ""
+            var _offline = "";
             if(products[i].offline != undefined){
                 _offline = "offline";
             }
 
-            if(getArrayIndexProductsSelected().indexOf(products[i].id) !== -1) {
+            if(getArrayIndexProductsSelected().indexOf(products[i].id) !== -1 || buyerInventory.is_inventory_in_current_select_variant(products[i].id)) {
                 html += '<li class="myProductSelected">\
                     <a href="#" data-role="button" class="productSelected '+_offline+' " data-id="'+products[i].id+'" data-selected="true">\
                         <img src="'+DOMAIN+products[i].model_image+'">\
                         <span>'+products[i].product_name+'</span>\
                     </a>\
-                </li>'
+                </li>';
             }
             else{
                 
@@ -980,7 +896,7 @@ function init() {
                         <img src="'+DOMAIN+products[i].model_image+'">\
                         <span>'+products[i].product_name+'</span>\
                     </a>\
-                </li>'
+                </li>';
             }
         }
         $('.products_clients_add').append(html);
@@ -1051,7 +967,7 @@ function init() {
 
     function selectProduct(e) {
         e.preventDefault();
-        var products = JSON.parse(localStorage.getItem('buyerInventory')),
+        var products = buyerInventoryFactory.get_current_list(),
             clientSelected = JSON.parse(localStorage.getItem('clientSelected')),
             productSelected,
             id = $(this).data('id');
@@ -1061,11 +977,16 @@ function init() {
             if(!$(this).data('selected')){
                 //Add Products to LocalStorage
                 if(products[i].id === id){
+                	if (buyerInventory.inventory_has_variants(id)) {
+                		buyerInventory.go_to_sub_variant_view(id);
+                		break;
+                	}
                     productSelected = {
                         'id': products[i].id,
                         'product_name': products[i].product_name,
                         'model_name': products[i].model_name,
                         'quantity': products[i].quantity,
+                        'max': products[i].quantity,
                         'price': calculatePrice(products[i]),
                         'model_image': products[i].model_image,
                         'discount': getDiscount(products[i])
@@ -1104,12 +1025,14 @@ function init() {
                     //end animation
                     //show prices
                     $('.see_more_products_clients').text(getCurrentTotal());
-                    
-                    buyerInventory.go_to_sub_variant_view(products[i].id);
                     break;
                 }
             //Remove Products to LocalStorage
             } else {
+            	if (buyerInventory.inventory_has_variants(id)) {
+            		buyerInventory.go_to_sub_variant_view(id);
+            		break;
+            	}
                 var remove = -1;
                 $.each(clientSelected.products, function(x, value){
                     if(value.id == id){                                                
@@ -1180,9 +1103,7 @@ function init() {
         });
         collapse.collapsibleset().trigger('create');
     }
-
-    function saveProduct() {
-
+    function saveProduct() {        
         var nameProduct = $('#browser').val(),
             nameVariant = $('#name-variant').val(),
             categoryId = $('#category-id').text(),
@@ -1219,9 +1140,10 @@ function init() {
                         // sku.val('');
                         // costPrice.val('');
                         buyerInventoryFactory.store_inventory(data);
-
-                        uploadPhoto(data.id);
-
+                        localStorage.setItem('productModelId', data.id);
+                        uploadPhoto(data.id);                        
+                        alert('Success!');
+                        try{$.mobile.navigate("#pagina15");}catch(e){}
                     } else {
                         alert('an error occurred');
                     }
@@ -1240,10 +1162,7 @@ function init() {
                 buyerInventoryFactory.store_inventory(newInventory);
                 win();
             }
-        } else {
-            alert('Data Incomplete');
         }
-
     }
 
     function getInformationProduct() {
@@ -1267,7 +1186,7 @@ function init() {
         Show products related in input name product
          */
         $.each(products, function(i, value) {
-            $('#browsers').append('<option data-id="'+value.id+'" value="'+value.name+'">')
+            $('#browsers').append('<option data-id="'+value.id+'" value="'+value.name+'">');
         });
     }
 
@@ -1282,16 +1201,17 @@ function init() {
                 '</div>');
             });
             $('#categories-list').trigger('create');
-
     }
 
     function getCompleteInformation(event) {
         var productName = $(this).val();
         var productId = 0;
         $.each($('#browsers option'), function(i, value){
-            if(value.value == productName){
-                productId = $(value).data('id');
-            }
+            if($('#browsers option').length != 0){
+                if(value.value == productName){
+                    productId = $(value).data('id');
+                }
+            }            
         });
         var information = localStorage.getItem('productRelated');
         information = JSON.parse(information);
@@ -1330,6 +1250,64 @@ function init() {
         content.append(html_to_insert);
     }
 
+    
+    /* Features */
+    function getFeatures(){
+        
+        var idProduct = JSON.parse(localStorage.getItem('productModelId'));
+        var cache = false;
+        if(Offline.state == 'down') {
+            cache = true;
+        }
+        featureFactory.getFeatures(showFeatures, cache, idProduct);
+    }
+    function showFeatures(features){
+        /*
+        Show avaliables features
+        */                
+        $('#features-list').html('');
+        var html = "";
+        for(var i in features){
+            html += '<li class="feature_option" data-id="'+features[i].id+'"><a href="#">' + features[i].name+ '</a></li>';
+        }
+        $('#features-list').append(html);
+        setTimeout(function(){
+             $('#features-list').trigger('create');  
+        }, 2000);                          
+    }
+
+    
+    /* Values Features */
+    function getValuesFeatures(){        
+        var idProduct = JSON.parse(localStorage.getItem('productModelId'));
+        var idFeature = $(this).data('id');
+        var featureName = $(this).text();
+        var cache = false;
+        if(Offline.state == 'down') {
+            cache = true;
+        }
+        debugger;
+        featureFactory.getValuesFeatures(showValuesFeatures, cache, idProduct, idFeature); 
+        $('#featureName').text(featureName); 
+        try{$.mobile.navigate("#pagina15");}catch(e){}      
+    }
+    function showValuesFeatures(valuesFeatures){
+        /*
+        Show avaliables features
+        */
+        debugger;        
+        $('#values-features-list').html('');
+        var html = "";
+        for(var i in valuesFeatures){
+            html += '<li data-theme="a" data-id="'+valuesFeatures[i].id+'"><a href="#">' +valuesFeatures[i].name+ '</a></li>'; 
+        }
+        $('#values-features-list').append(html);
+        setTimeout(function(){
+             $('#values-features-list').trigger('create');
+        }, 2000);             
+    }
+
+
     /* Search */
 
     function changeSearch() {
@@ -1337,19 +1315,23 @@ function init() {
     }
 
     function pageMyProductsShow(){
+    	showMethodUpdate();
         saveClientStorage();
         $('#theDate').val(getDateMonthYear());
         var myProducts = JSON.parse(localStorage.getItem('clientSelected')).products,
             ul_for_my_products = $('#myProducts');
         ul_for_my_products.html('');
         var html = '';
-
         for(var i in myProducts){
-            html += '<li class="without_radious" data-id="'+myProducts[i].id+'">\
+        	var variant_id = '0';
+            if (!isNaN(parseInt(myProducts[i].variant_id))) {
+            	variant_id = myProducts[i].variant_id;
+            }
+            html += '<li class="without_radious" data-id="'+myProducts[i].id+'", data-variant="'+variant_id+'">\
                         <a href="">\
                             <img src="'+DOMAIN+myProducts[i].model_image+'" class="ui-li-icon">\
-                            <span class="ui-li-aside">'+myProducts[i].product_name+'</span>\
-                            <input type="number" class="qtyInvoice" min="1" value="'+myProducts[i].quantity+'">\
+                            <span class="ui-li-aside">'+myProducts[i].model_name+'</span>\
+                            <input type="text" class="qtyInvoice" placeholder="0" value="'+myProducts[i].quantity+'">\
                             <span class="ui-li-aside">'+myProducts[i].price+'</span>\
                             <span class="ui-li-aside totalprice">'+(myProducts[i].price*myProducts[i].quantity)+'</span>\
                             <span class="removeProduct">X</span>\
@@ -1358,17 +1340,34 @@ function init() {
         }
         ul_for_my_products.append(html);
         ul_for_my_products.trigger('create');
-
+        $( ".qtyInvoice" ).trigger('keyup');
+    }
+    
+    function showMethodUpdate() {
+    	var all_qty = $('#store_total_qty').attr('checked');
+    	if (all_qty == 'checked') {
+    		$('#update_stock_by_status').attr('checked', false);
+    		$('#update_stock_by_status').parent().show();
+    	} else {
+    		$('#update_stock_by_status').attr('checked', 'checked');
+    		$('#update_stock_by_status').parent().hide();
+    	}
     }
 
     function removeMyProduct() {
         var clientSelected = JSON.parse(localStorage.getItem('clientSelected')),
         currentPrice = parseInt($('.see_more_products_clients').text()),
-        id = $(this).parents('li').data('id');
-        var remove = -1
+        id = $(this).parents('li').data('id'),
+        variant_id = $(this).parents('li').data('variant'),
+        remove = -1;
+
         $.each(clientSelected.products, function(i, value){
-            if(value.id == id){
-                remove = i
+        	var value_variant = 0;
+        	if (!isNaN(parseInt(value.variant_id))) {
+        		value_variant = parseInt(value.variant_id);
+        	}
+            if(value.id == id && value_variant == variant_id){
+                remove = i;
             }
         });
         if(remove > -1) {
@@ -1377,7 +1376,6 @@ function init() {
         }
 
         //save in storage
-
         for(var i in storageClients){
             var index = getArrayIndexClientsSelected().indexOf(clientSelected.id);
             if(index !== -1){
@@ -1391,10 +1389,11 @@ function init() {
         pageMyProductsShow();
     }
 
-    function updateMyProduct() {
+    function updateMyProduct(){
         var clientSelected = JSON.parse(localStorage.getItem('clientSelected'));
         var myProducts = clientSelected.products,
             idProduct = $(this).parents('.without_radious').data('id'),
+            idVariant = $(this).parents('.without_radious').data('variant'),
             quantity = $(this).val(),
             self = $(this);
 
@@ -1405,22 +1404,25 @@ function init() {
         }
         
         $.each(myProducts, function(i, value){
-             if(value.id == idProduct) {
-                if(quantity > 1){
+        	var value_variant = 0;
+        	if (!isNaN(parseInt(value.variant_id))) {
+        		value_variant = parseInt(value.variant_id);
+        	}
+            if(value.id == idProduct && value_variant == idVariant) {
+                if(quantity >=0){
                     value.quantity = quantity;
                     value.totalprice = value.price * quantity;
                     self.parent().siblings('.totalprice').text(value.totalprice);
                 }
                 else{
-                    self.val('0');
+                    self.val('');
                 }
-             }
+            }             
         });
-
+        
         localStorage.setItem("clientSelected", JSON.stringify(clientSelected));
-
+        
         //save in storage
-
         for(var i in storageClients){
             var index = getArrayIndexClientsSelected().indexOf(clientSelected.id);
             if(index !== -1){
@@ -1431,6 +1433,16 @@ function init() {
                 });
             }
         }
+
+        //get total current price
+        var newProducts = JSON.parse(localStorage.getItem('clientSelected')).products;
+        var acumTotal=0;              
+        for(var i in newProducts){
+            if(newProducts[i].totalprice){
+                acumTotal += parseFloat(newProducts[i].totalprice);
+            }              
+        }           
+        $('.see_total_from_invoice').text(acumTotal);
     }
 
     function getDateMonthYear(){
@@ -1471,6 +1483,7 @@ function init() {
 
     function uploadPhoto(id) {
         if(imageURL != undefined) {
+            loading();
             var options = new FileUploadOptions();
             options.fileKey="file";
             options.fileName=imageURL.substr(imageURL.lastIndexOf('/')+1);
@@ -1485,34 +1498,26 @@ function init() {
 
             var ft = new FileTransfer();
             ft.upload(imageURL, encodeURI(urls.upload), win, fail, options);
+        } else {
+            eventsAfterLogin();
         }
     }
 
     function win(r) {
         eventsAfterLogin();
         imageURL = undefined;
+        $.mobile.loading("hide");
     }
 
     function fail(error) {
         eventsAfterLogin();
         alert("An error has occurred image not upload");
         imageURL = undefined;
-    }
-
-    function beforeAjaxLoader(){
-    	try {
-	        $.mobile.loading("show", {
-	            textVisible: true,
-	            theme: 'c',
-	            textonly: false
-	        });
-    	} catch(e){}
+        $.mobile.loading("hide");
     }
 
     function completeAjaxLoader(){
-    	try {
-        	$.mobile.loading("hide");
-    	} catch(e){}
+    	try{$.mobile.loading("hide");}catch(e){}
     }
 }
 
@@ -1554,4 +1559,4 @@ Offline.options = {
       // It's not included in the normal build, you should bring in js/snake.js in addition to
       // offline.min.js.
       game: false
-    }
+    };

@@ -26,9 +26,7 @@ var CountryFactory = function(urls, token, cache) {
 				}
 			},
 			complete: function(){
-				try {
-					$.mobile.loading("hide");
-				} catch(e){}
+				try{$.mobile.loading("hide");}catch(e){}
 			}
 	    });
 	};
@@ -68,9 +66,7 @@ var StateFactory = function(urls, token, cache) {
 				}
 			},
 			complete: function(){
-				try {
-					$.mobile.loading("hide");
-				} catch(e){}
+				try{$.mobile.loading("hide");}catch(e){}
 			}
 	    });
 	};
@@ -102,13 +98,11 @@ var CityFactory = function(urls, token, cache) {
 			data: {rp_token: factory.token, state: state},
 			dataType: 'json',
 			beforeSend: function(){
-				try {
-	                $.mobile.loading("show", {
-	                    textVisible: true,
-	                    theme: 'c',
-	                    textonly: false
-	                });
-				} catch(e){}
+                try{$.mobile.loading("show", {
+                    textVisible: true,
+                    theme: 'c',
+                    textonly: false
+                });}catch(e){}
             },
 			success: function(data){
 				if (data.status == 'ok') {
@@ -119,9 +113,7 @@ var CityFactory = function(urls, token, cache) {
 				}
 			},
 			complete: function(){
-				try {
-					$.mobile.loading("hide");
-				} catch(e){}
+				try{$.mobile.loading("hide");}catch(e){}
 			}
 	    });
 	};

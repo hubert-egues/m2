@@ -1,31 +1,61 @@
-var InvoiceModel = function() {
+var InvoiceModel = function(buyerInventoryFactory) {
 	var model = this;
 	model.message = '';
-	model.id_products = 'buyerInventory';
-	
+
 	model.success_create = function(client_products) {
-		var products = JSON.parse(localStorage.getItem(model.id_products));
+		var products = buyerInventoryFactory.get_current_list();
 		for (var index1 in client_products) {
-			product = client_products[index1];
+			var product = client_products[index1];
 			for (var index in products) {
 				if (products[index].id == parseInt(product.id)) {
-					products[index].quantity-=product.quantity;
+					if (typeof(product.variant_id) != 'undefined' && parseInt(product.variant_id) > 0) {
+						for (var index2 in products[index].variants) {
+							if (product.variant_id == products[index].variants[index2].id) {
+								products[index].variants[index2].quantity-=product.quantity;
+							}
+						}
+					} else {
+						products[index].quantity-=product.quantity;
+					}
 				}
 			}
 		}
-		localStorage.setItem(model.id_products, JSON.stringify(products));
+		buyerInventoryFactory.set_current_list(products);
 	};
 
 	model.are_valid_products = function(client_products) {
-		var products = JSON.parse(localStorage.getItem(model.id_products));
+		var products = buyerInventoryFactory.get_current_list();
 		for (var index1 in client_products) {
-			client_product = client_products[index1];
+			var client_product = client_products[index1];
 			for (var index in products) {
-				if (products[index].id == client_product.id) {
-					if (client_product.quantity == 0 || client_product.quantity > products[index].quantity) {
-						model.message = 'Ivalid quantity for "' + client_product.model_name + '"';
+				var product = products[index];
+				if (product.id == client_product.id) {
+					if (client_product.quantity == 0) {
+						model.message = 'Invalid quantity, minimun 1 for "' + client_product.model_name + '"';
 						return false;
-					}					
+					}
+					if (!isNaN(parseInt(client_product.variant_id)) && parseInt(client_product.variant_id) > 0) {
+						var found = false;
+						for (var index2 in product.variants) {
+							var variant = product.variants[index2];
+							if (variant.id == client_product.variant_id) {
+								if (client_product.quantity  > variant.quantity) {
+									model.message = 'Invalid quantity, max '+ variant.quantity +' for "' + client_product.model_name + '"';
+									return false;
+								}
+								found = true;
+							}
+						}
+						if (!found)  {
+							model.message = 'Invalid variant for "' + client_product.model_name + '"';
+							return false;
+						}
+					} else {/* no variant */
+						if (client_product.quantity > product.quantity) {
+							model.message = 'Invalid quantity, max ' + product.quantity + ' for "' + client_product.model_name + '"';
+							return false;
+						}
+					}
 				}
 			}
 		}
@@ -36,16 +66,6 @@ var InvoiceModel = function() {
 		var message = model.message;
 		model.message = '';
 		return message;
-	};
-	
-	model.DESCRIPTION = function() {
-		/*...... click al elegir prodcto, pero si tiene variantes lleva a una nueva pantalla, si no tiene variantes pas a invoice  */
-		/* desde la pantalla de invoice, cuando se de click al producto nombre se debe lleva r a la pantalla de variante si tuviera, si no no se hace nada */
-		/* la nueva pantalla de sub variantes debera regresar siempre a la pantalla de seleccion de productos para el usuario actual (verificar si solo es una ) */
-		/* aplicar filtros para items de invoice */
-		/* verificar el limpiado de invoice para que no quede rastro anterior de productos (las cantidades anteriores se ven hasta que se cambia de pagina) */
-		/* actualizar el envio de data desde view para mobile y el storage local */
-		/* verificar offline el procedimiento */
 	};
 	
 	return model;

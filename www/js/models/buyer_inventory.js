@@ -3,51 +3,65 @@ var BuyerInventoryModel = function(categoryFactory, buyerInventoryFactory, clien
 	model.id_template_variant = 'id_template_option_variant';
 	model.id_variants_list = 'id_selected_product_variants_list';
 	model.class_btn_selected_variant = 'class_selected_variant';
+	model.id_selected_product_name = 'selected_product_name';
+	model.id_selected_product_variant_name = 'selected_product_variant_name';
+	model.id_stores = 'select_buyer_store';
 	model.origin = '';
 	model.origin_products = 1;
 	model.origin_invoice = 2;
 	model.selected_variant_id = 0;
+	model.current_inventory = 0;
 
 	model.init = function() {
 		model.refresh_variants_list();
 	};
 	
-    model.go_to_sub_variant_view = function(product_id) {
+    model.go_to_sub_variant_view = function(inventory_id) {
     	model.origin = model.origin_products;
-    	var product = buyerInventoryFactory.get_by_id(product_id);
-    	if (product.variants.length > 0) {
+    	if (model.inventory_has_variants(inventory_id)) {
+    		var product = buyerInventoryFactory.get_by_id(inventory_id);
     		model.render_variant_list(product);
     		$.mobile.navigate("#pagina14");
-    		return true;
     	} else {
     		model.render_variant_list();
     	}
+    };
+    
+    model.inventory_has_variants = function (inventory_id) {
+    	var product = buyerInventoryFactory.get_by_id(inventory_id);
+    	if (product && product.variants.length > 0) {
+    		return true;
+    	}
     	return false;
     };
-    
-    model.update_variant =  function(product_id, variant_id) {
-    	/* TODO: completar */
-    	model.selected_variant_id = variant_id;
-    	model.origin = model.origin_invoice;
-    	model.render_variant_list(product);
-    	$.mobile.navigate("#pagina14");
-    };
-    
+
     model.render_variant_list = function(product) {
+    	$('#'+model.id_selected_product_name).html(product.product_name);
+    	$('#'+model.id_selected_product_variant_name).html(product.model_name);
     	$('#'+model.id_variants_list).html('');
     	if (typeof(product.id) !== 'undefined') {
     		for (var index in product.variants) {
-        		model.set_variant_to_list(product.variants[index], product.id);
+    			var checked = model.is_inventory_in_current_select_variant(product.id, product.variants[index].id);
+        		model.set_variant_to_list(product.variants[index], product, checked);
     		}
     	}
 		model.refresh_variants_list();
 	};
 
-	model.set_variant_to_list = function(variant, inventory_id) {
+	model.set_variant_to_list = function(variant, inventory, checked) {
 		var template = $('#'+model.id_template_variant).html();
+		var price = model.calculate_price_by_client_selected(inventory, variant.id);
+
     	template = template.replace(/__id__/g, variant.id);
-    	template = template.replace(/__parent__/g, inventory_id);
+    	template = template.replace(/__parent__/g, inventory.id);
     	template = template.replace(/__name__/g, variant.name + ' ' + variant.value);
+    	template = template.replace(/__price__/g, price);
+    	if (checked) {
+    		checked = 'checked="checked"';
+    	} else {
+    		checked = '';
+    	}
+    	template = template.replace(/__checked__/g, checked);
         $('#'+model.id_variants_list).append(template);
 
         model.refresh_variants_list();
@@ -61,57 +75,69 @@ var BuyerInventoryModel = function(categoryFactory, buyerInventoryFactory, clien
 	model.related_event_variant = function() {
 		$('.'+model.class_btn_selected_variant).unbind("click");
 		$('.'+model.class_btn_selected_variant).bind("click", function(event){
-			model.chose_variant(this);
+			model.chose_variant($(this));
 		});
 	};
     
     model.chose_variant = function(obj) {
-    	var variant_id = $(obj).data('id');
-    	var inventory = buyerInventoryFactory.get_by_id($(obj).data('parent'));
+    	var variant_id = obj.data('id');
+    	var inventory = buyerInventoryFactory.get_by_id(obj.data('parent'));
     	var updated = false;
+    	var add = obj.attr('checked');
+    	model.current_inventory = inventory.id;
+
     	/* recorre y agrega , si existe actualiza */
-    	client = clientFactory.get_client_selected();
-    	for (var i in client.products) {
-    		var product = client.products[i];
-    		if (product === inventory.id && product.variant_id === variant_id) {
-    			updated = true;
-    		}
+    	var client = clientFactory.get_client_selected();
+    	if (add) {
+	    	for (var i in client.products) {
+	    		var product = client.products[i];
+	    		if (product.id === inventory.id && product.variant_id === variant_id) {
+	    			updated = true;
+	    		}
+	    	}
+	    	if (!updated) {
+	    		client.products.push(model.get_product_selected(inventory, variant_id));
+	    	}
+    	} else {
+    		var valids = [];
+	    	for (var i in client.products) {
+	    		var product = client.products[i];
+	    		if (product.id === inventory.id && product.variant_id === variant_id) {
+	    			/* ignore selected */
+	    		} else {
+	    			valids.push(product);
+	    		}
+	    	}
+	    	client.products = valids;
     	}
-    	if (!updated) {
-    		client.products.push(model.get_product_selected(inventory, variant_id));
-    	}
-    	
-    	if (model.selected_variant_id > 0 && model.selected_variant_id != variant_id) {
-    		/* remove product in client selected */
-    		var products = [];
-    		for (var j in client.products) {
-    			if (client.products[j].id == inventory.id && inventory.variant_id == variant_id) {
-    				continue;
-    			}
-    			products.push(client.products[j]);
-    		}
-    		client.products = products;
-    	}
-    	
     	clientFactory.set_client_selected(client);
-    	/* agregar el valor al producto seleccionado actualmente */
-    	/* recalcular el valor mostrado en invoice*/
-    	/* verificar que no se repita el valor en el product model */
-    	console.log('asdasdasds ok')
-    	/* utilicar go back de jmobile para regresar */
-    	window.history.back();
+    };
+    
+    model.get_variant_from_product = function(product, variant_id) {
+    	var variant = false;
+    	if (product.variants.length < 1) {
+    		return false;
+    	}
+    	for (var index in product.variants) {
+    		if (product.variants[index].id == parseInt(variant_id)) {
+    			variant = product.variants[index];
+    		}
+    	}
+    	return variant;
     };
     
     model.get_product_selected = function(product, variant_id) {
+    	var variant = model.get_variant_from_product(product, variant_id);
     	var productSelected = {
             'id': product.id,
             'product_name': product.product_name,
-            'model_name': product.model_name,
-            'quantity': product.quantity,
+            'model_name': product.model_name + ' - ' + variant.name + ' ' + variant.value,
+            'quantity': variant.quantity,
+            'max': variant.quantity,
             'price': model.calculate_price_by_client_selected(product, variant_id),
             'model_image': product.model_image,
             'discount': model.get_discount_id_by_client_selected(product),
-            'variant_id': variant_id
+            'variant_id': variant_id,
         };
     	return productSelected;
     };
@@ -122,8 +148,7 @@ var BuyerInventoryModel = function(categoryFactory, buyerInventoryFactory, clien
         var variant_value = 0;
         if(clientSelected.type === 1) {/* business client -> wholesale */            
             price = parseFloat(inventory.wholesale_price);
-        }
-        else if(clientSelected.type === 2) {/* business client -> wholesale */
+        } else if (clientSelected.type === 2) {/* business client -> wholesale */
             price = parseFloat(inventory.retail_price);
             if (typeof(inventory.clients_discount) != 'undefined') {                
 	            if (typeof(inventory.clients_discount[clientSelected.id]) != 'undefined') {
@@ -155,6 +180,49 @@ var BuyerInventoryModel = function(categoryFactory, buyerInventoryFactory, clien
         }
     	return discount;
     };
+    
+    model.is_inventory_in_current_select_variant = function(inventory_id, variant_id) {
+    	var clienSelected = clientFactory.get_client_selected();
+    	for (var index in clienSelected.products) {
+    		if (clienSelected.products[index].id == inventory_id) {
+    			if (typeof(variant_id) != 'undefined') {
+    				if (clienSelected.products[index].variant_id == variant_id) {
+    					return true;
+    				}
+    			} else {
+    				return true;
+    			}
+    		}
+    	}
+    	return false;
+    };
 
+    /* STORE */
+    model.render_stores = function(store_id){
+    	stores = buyerInventoryFactory.get_stores();
+    	if (typeof(stores) == 'undefined' || stores.length < 1) {
+    		return false;
+    	}
+    	var field_select, index;
+		if (typeof(store_id) == 'undefined' || store_id == null) {
+			store_id = stores[0].id;
+		}
+		buyerInventoryFactory.set_current_store(store_id);
+		field_select = $('#'+model.id_stores);
+		field_select.html('');
+		if(field_select != undefined){
+			for (index in stores) {
+				var option = $('<option></option>');
+				option.attr('value', stores[index].id);
+				option.html('Store: '+stores[index].name);
+				if (stores[index].id == store_id) {
+					option.attr('selected', 'selected');
+				}
+				field_select.append(option);
+	        }
+			try {field_select.selectmenu('refresh', true);}catch(e){}
+		}
+	};
+	
     return model;
 };
